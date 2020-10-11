@@ -1,0 +1,82 @@
+---
+title: "App Script"
+author: "Peimin Lin"
+date: "09/10/2020"
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+library(coronavirus)
+library(plotly)
+library(leaflet)
+```
+
+```{r read package}
+data("coronavirus")
+```
+
+```{r mapdata}
+map <- coronavirus %>% 
+  filter(country%in%c("China",  
+                       "US",
+                       "Italy",
+                         "Spain",
+                        "Belgium",
+                        "Korean",
+                         "Japan",
+                       "England",
+                         "Australia",
+                         "Germany"))%>%  # select 10 main countries in coronavirus 
+group_by(type,date,country,cases, province,long,lat) %>%
+  summarise() 
+# write.csv(map,"map.csv") 
+# save the package data as csv file 
+```
+
+```{r tidy data}
+tidy <- coronavirus %>% 
+  group_by(type, date, country) %>%  # group coronavirus by type, date, country 
+  summarise(total_cases = sum(cases)) %>% # sum the cases after grouping
+  pivot_wider(names_from = type, values_from = total_cases) %>% # change the table type into wider
+  arrange(date) # arrange the date from early to latest
+ # write.csv(tidy,"tidy.csv")
+```
+
+
+
+```{r mapview}
+map1 <- map %>% filter(date== "2020-02-10") %>%
+   leaflet() %>%   # add map 
+      addTiles() %>%  
+      addCircleMarkers(     # add circle Markers in map according the cases number
+        lng          = ~long,
+        lat          = ~lat,
+        radius       = ~log(cases^2),
+        stroke       = FALSE,
+        color        =  "#005900",
+        fillOpacity  = 0.5,
+        label        = ~country,
+        labelOptions = labelOptions(textsize = 15)
+      )
+map1
+```
+
+
+```{r plotview}
+  plot <- map  %>% filter(type == "confirmed",
+                          country == "China") %>%
+      ggplot(aes(x = date, y= cases, color = country)) +
+      geom_col() + 
+      theme(axis.title.x=element_blank(), # clear x-ais as the date range have plenty of ovservations.
+            axis.text.x=element_blank(),
+            axis.ticks.x=element_blank())
+plot
+```
+
+
+
+```{r dt table}
+dtable <- DT::datatable(tidy, options = list(pageLength = 5))
+```
+
